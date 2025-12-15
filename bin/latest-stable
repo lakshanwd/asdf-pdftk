@@ -8,22 +8,23 @@ plugin_dir=$(dirname "$(dirname "$current_script_path")")
 # shellcheck source=./lib/utils.bash
 . "${plugin_dir}/lib/utils.bash"
 
-curl_opts=(-sI)
+# GitLab API endpoint for releases
+# Using project ID 5024297 (from utils.bash download_release function)
+GITLAB_API_URL="https://gitlab.com/api/v4/projects/5024297/releases"
 
-if [ -n "${GITHUB_API_TOKEN:-}" ]; then
-	curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_API_TOKEN")
+# Fetch the latest release using GitLab API
+# The API returns releases sorted by released_at in descending order by default
+if command -v jq >/dev/null 2>&1; then
+	# Use jq if available for more reliable JSON parsing
+	version=$(curl -fsSL "$GITLAB_API_URL?per_page=1" | jq -r '.[0].tag_name // empty' | sed 's/^v//')
+else
+	# Fallback to grep/sed if jq is not available
+	version=$(curl -fsSL "$GITLAB_API_URL?per_page=1" | grep -o '"tag_name":"[^"]*"' | head -1 | sed 's/"tag_name":"//;s/"//' | sed 's/^v//')
 fi
 
-# curl of REPO/releases/latest is expected to be a 302 to another URL
-# when no releases redirect_url="REPO/releases"
-# when there are releases redirect_url="REPO/releases/tag/v<VERSION>"
-redirect_url=$(curl "${curl_opts[@]}" "$GH_REPO/releases/latest" | sed -n -e "s|^location: *||p" | sed -n -e "s|\r||p")
-version=
-printf "redirect url: %s\n" "$redirect_url" >&2
-if [[ "$redirect_url" == "$GH_REPO/releases" ]]; then
+# If API call fails or returns empty, fall back to listing all versions
+if [[ -z "$version" ]]; then
 	version="$(list_all_versions | sort_versions | tail -n1 | xargs echo)"
-else
-	version="$(printf "%s\n" "$redirect_url" | sed 's|.*/tag/v\{0,1\}||')"
 fi
 
 printf "%s\n" "$version"

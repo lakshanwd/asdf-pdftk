@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - main
+    - main
   pull_request:
 
 jobs:
@@ -12,11 +12,12 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
-          - macos-latest
+        - ubuntu-latest
+        - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - name: asdf_plugin_test
-        uses: asdf-vm/actions/plugin-test@v4
-        with:
-          command: pdftk --help
+    - name: asdf_plugin_test
+      uses: asdf-vm/actions/plugin-test@v4
+      with:
+        command: pdftk --version
+        version: 3.3.3
