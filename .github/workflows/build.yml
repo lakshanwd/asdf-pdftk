@@ -16,7 +16,10 @@ jobs:
           - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: asdf-vm/actions/setup@v4
       - name: asdf_plugin_test
-        uses: asdf-vm/actions/plugin-test@v4
-        with:
-          command: pdftk --help
+        run: |
+          asdf plugin add pdftk https://github.com/lakshanwd/asdf-pdftk.git
+          asdf install pdftk latest
+          asdf set -u pdftk latest
+          pdftk --version
